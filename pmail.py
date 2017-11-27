@@ -4,18 +4,43 @@ import imaplib
 import email
 import json
 
+from pprint import pprint
 
 server,port = "imap.gmail.com",993
+
+class Email(object):
+    def __init__(self,data):
+        self.msg = email.message_from_string(data[0][1].decode('utf-8'))
+
+    def prettyFrom(self):
+        return email.utils.parseaddr(self.msg['From'])
+
+    def __repr__(self):
+        return "Email('" + str(self.prettyFrom()[1]) + "', '" + str(self.msg['Subject']) + "')"
 
 class Folder(object):
     def __init__(self,m,name):
         self.m = m
         self.name = name
 
-    def getMail(self):
+    def fetchMail(self):
         _, data = self.m.select(self.name)
-        a,b = self.m.search(None,'ALL')
-        return b
+        _, data = self.m.uid('search',None,'ALL')
+
+        for num in data[0].split():
+            try:
+                _, data = self.m.uid('fetch',num,'(RFC822)')
+                yield Email(data)
+            except:
+                pass
+
+    def getMail(self,stream=False):
+        if stream:
+            for f in self.fetchMail():
+                yield f
+        else:
+            return list(self.fetchMail())
+
 
 class Gmail(object):
     def __init__(self,auth):
@@ -35,27 +60,38 @@ class Gmail(object):
         self.m = imaplib.IMAP4_SSL(server)
         self.m.login(self.username,self.password)
 
+    def cleanFolderName(self,f):
+        name = f.decode('utf-8')
+
+        name = list(name)
+        del name[-1]
+        while '"' in name:
+            del name[0]
+        name = ''.join(name)
+
+        return name
+
     def getFolders(self):
         _, folders = self.m.list()
-        temp = []
+        temp = {}
         for f in folders:
-            name = f.decode('utf-8')
-            name = list(name)
-            del name[-1]
-            while '"' in name:
-                del name[0]
-            name = ''.join(name)
-
+            name = self.cleanFolderName(f)
             if '[Gmail]' not in name:
-                temp.append(Folder(self.m,name))
+                temp[name] = Folder(self.m,name)
         return temp
 
 
 
 g = Gmail('tokens.json')
-for f in g.getFolders():
-    print(f.name)
-    print(f.getMail())
+f = g.getFolders()
+
+for m in f['++'].getMail(stream=True):
+    print(m)
 
 #f.name = '++'
 #print(f.getMail())
+
+
+
+
+
