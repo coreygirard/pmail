@@ -3,6 +3,7 @@ import time
 import imaplib
 import email
 import json
+import re
 
 from pprint import pprint
 
@@ -12,8 +13,32 @@ class Email(object):
     def __init__(self,data):
         self.msg = email.message_from_string(data[0][1].decode('utf-8'))
 
+    def getTo(self):
+        return self.msg['To']
+
+    def prettyTo(self):
+        return email.utils.parseaddr(self.getTo())
+
+    def getFrom(self):
+        return self.msg['From']
+
     def prettyFrom(self):
-        return email.utils.parseaddr(self.msg['From'])
+        return email.utils.parseaddr(self.getFrom)
+
+    def getSubject(self):
+        return self.msg['Subject']
+
+    def getBody(self):
+        maintype = self.msg.get_content_maintype()
+        if maintype == 'multipart':
+            for part in self.msg.get_payload():
+                if part.get_content_maintype() == 'text':
+                    return part.get_payload()
+        elif maintype == 'text':
+            return self.msg.get_payload()
+
+    # TODO: implement returning only the visible text of the message body
+    #def prettyBody(self):
 
     def __repr__(self):
         return "Email('" + str(self.prettyFrom()[1]) + "', '" + str(self.msg['Subject']) + "')"
@@ -23,23 +48,25 @@ class Folder(object):
         self.m = m
         self.name = name
 
-    def fetchMail(self):
+    def fetchMailStream(self,limit):
         _, data = self.m.select(self.name)
         _, data = self.m.uid('search',None,'ALL')
 
-        for num in data[0].split():
+        for num in data[0].split()[:limit]:
             try:
                 _, data = self.m.uid('fetch',num,'(RFC822)')
                 yield Email(data)
             except:
                 pass
 
-    def getMail(self,stream=False):
+    def fetchMail(self,limit):
+        return list(self.fetchMailStream(limit))
+
+    def getMail(self,limit=None,stream=False):
         if stream:
-            for f in self.fetchMail():
-                yield f
+            return self.fetchMailStream(limit)
         else:
-            return list(self.fetchMail())
+            return self.fetchMail(limit)
 
 
 class Gmail(object):
@@ -79,19 +106,6 @@ class Gmail(object):
             if '[Gmail]' not in name:
                 temp[name] = Folder(self.m,name)
         return temp
-
-
-
-g = Gmail('tokens.json')
-f = g.getFolders()
-
-for m in f['++'].getMail(stream=True):
-    print(m)
-
-#f.name = '++'
-#print(f.getMail())
-
-
 
 
 
