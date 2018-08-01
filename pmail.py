@@ -5,31 +5,30 @@ import email
 import json
 import re
 
-
 from pprint import pprint
 
-server, port = "imap.gmail.com", 993
+server,port = "imap.gmail.com",993
 
 class Email(object):
-    def __init__(self, data):
+    def __init__(self,data):
         self.msg = email.message_from_string(data[0][1].decode('utf-8'))
 
-    def get_to(self):
+    def getTo(self):
         return self.msg['To']
 
-    def pretty_to(self):
-        return email.utils.parseaddr(self.get_to())
+    def prettyTo(self):
+        return email.utils.parseaddr(self.getTo())
 
-    def get_from(self):
+    def getFrom(self):
         return self.msg['From']
 
-    def pretty_from(self):
-        return email.utils.parseaddr(self.get_from)
+    def prettyFrom(self):
+        return email.utils.parseaddr(self.getFrom)
 
-    def get_subject(self):
+    def getSubject(self):
         return self.msg['Subject']
 
-    def get_body(self):
+    def getBody(self):
         maintype = self.msg.get_content_maintype()
         if maintype == 'multipart':
             for part in self.msg.get_payload():
@@ -39,56 +38,56 @@ class Email(object):
             return self.msg.get_payload()
 
     # TODO: implement returning only the visible text of the message body
-    #def pretty_body(self):
+    #def prettyBody(self):
 
     def __repr__(self):
-        return "Email('" + str(self.pretty_from()[1]) + "', '" + str(self.msg['Subject']) + "')"
+        return "Email('" + str(self.prettyFrom()[1]) + "', '" + str(self.msg['Subject']) + "')"
 
 class Folder(object):
-    def __init__(self, m, name):
+    def __init__(self,m,name):
         self.m = m
         self.name = name
 
-    def fetch_mail_stream(self, limit):
+    def fetchMailStream(self,limit):
         _, data = self.m.select(self.name)
-        _, data = self.m.uid('search', None, 'ALL')
+        _, data = self.m.uid('search',None,'ALL')
 
         for num in data[0].split()[:limit]:
             try:
-                _, data = self.m.uid('fetch', num, '(RFC822)')
+                _, data = self.m.uid('fetch',num,'(RFC822)')
                 yield Email(data)
             except:
                 pass
 
-    def fetch_mail(self, limit):
-        return list(self.fetch_mail_stream(limit))
+    def fetchMail(self,limit):
+        return list(self.fetchMailStream(limit))
 
-    def get_mail(self, limit=None, stream=False):
+    def getMail(self,limit=None,stream=False):
         if stream:
-            return self.fetch_mail_stream(limit)
+            return self.fetchMailStream(limit)
         else:
-            return self.fetch_mail(limit)
+            return self.fetchMail(limit)
 
 
 class Gmail(object):
-    def __init__(self, auth):
+    def __init__(self,auth):
         try:
             temp = json.load(auth)
         except:
-            if isinstance(auth, str):
+            if type(auth) == type('string'):
                 with open('tokens.json') as f:
                     temp = json.load(f)
-
-            elif isinstance(auth, dict):
+            elif type(auth) == type(dict()):
                 temp = auth
 
         self.username = temp['username']
         self.password = temp['password']
 
-        self.m = imaplib.IMAP4_SSL(server)
-        self.m.login(self.username, self.password)
 
-    def clean_folder_name(self, f):
+        self.m = imaplib.IMAP4_SSL(server)
+        self.m.login(self.username,self.password)
+
+    def cleanFolderName(self,f):
         name = f.decode('utf-8')
 
         name = list(name)
@@ -99,11 +98,14 @@ class Gmail(object):
 
         return name
 
-    def get_folders(self):
+    def getFolders(self):
         _, folders = self.m.list()
         temp = {}
         for f in folders:
-            name = self.clean_folder_name(f)
+            name = self.cleanFolderName(f)
             if '[Gmail]' not in name:
-                temp[name] = Folder(self.m, name)
+                temp[name] = Folder(self.m,name)
         return temp
+
+
+
