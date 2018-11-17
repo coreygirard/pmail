@@ -102,3 +102,4 @@ ENV/
 
 *.json
 *.json~
+.pytest_cache

@@ -1,5 +1,10 @@
 # pmail
 
+[![Build Status](https://travis-ci.org/coreygirard/pmail.svg?branch=master)](https://travis-ci.org/coreygirard/pmail) <br>
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black) <br><br>
+
+**THIS IS ALL INACCURATE FOR THE MOMENT**
+
 ### Basic usage
 
 ```python
@@ -31,7 +36,7 @@ gmail = Gmail(filepath)
 `filepath` is the path to a JSON file formatted with your Gmail username and password:
 
 ```json
-{"username": "notmyemail@gmail.com", "password": "notmypassword"}
+{ "username": "notmyemail@gmail.com", "password": "notmypassword" }
 ```
 
 `Gmail()` returns an object that can be used to fetch your Gmail folders. `.get_folders()` returns a list of `Folder` objects:
@@ -41,11 +46,13 @@ for folder in gmail.get_folders()
 ```
 
 The `.name` property of a Folder object gives the folder label. To get all emails in a folder, use `.get_emails()`:
+
 ```python
 for message in folder.get_emails()
 ```
 
 `Email` objects provide various methods to return the email components:
+
 ```
 message.get_to()
 message.get_from()
