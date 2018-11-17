@@ -10,5 +10,6 @@ python:
 script: pipenv run pytest -vv
 
 install:
+  pip install pytest;
   pip install pipenv;
   pipenv install
